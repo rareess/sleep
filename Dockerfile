@@ -1,14 +1,16 @@
-FROM eclipse-temurin:11-jdk
+FROM gradle:8.4-jdk11 AS builder
 
 WORKDIR /app
 
-COPY build.gradle gradlew settings.gradle ./
-COPY gradle/ gradle/
+COPY build.gradle settings.gradle ./
+COPY src/ src/
 
-RUN ./gradlew wrapper
+RUN gradle build --no-daemon -x test
 
-COPY src/ src
+FROM eclipse-temurin:11-jre
 
-RUN ./gradlew build
+WORKDIR /app
 
-ENTRYPOINT ["java","-jar","build/libs/sleep-0.0.1-SNAPSHOT.jar"]
+COPY --from=builder /app/build/libs/sleep-0.0.1-SNAPSHOT.jar app.jar
+
+ENTRYPOINT ["java", "-jar", "app.jar"]

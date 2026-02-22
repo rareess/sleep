@@ -1,23 +1,18 @@
-package com.noom.interview.fullstack.sleep.model;
+package com.noom.interview.fullstack.sleep.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Size;
-import java.util.UUID;
 
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
-public class User {
-
-    private UUID id;
+public class CreateUserRequestDto {
 
     @NotBlank(message = "Username is required")
-    @Size(min = 3, max = 20, message = "Username must be between 3 and 20 characters")
+    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
     private String username;
 
     @NotBlank(message = "First name is required")

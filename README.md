@@ -1,5 +1,9 @@
 # Sleep API
 
+## Swagger documentation: 
+
+``http://localhost:8080/swagger-ui.html``
+
 ## Scripts
 
 ### generate-sleep-logs.ps1

@@ -2,9 +2,11 @@ package com.noom.interview.fullstack.sleep.service.impl;
 
 import com.noom.interview.fullstack.sleep.dto.CreateUserRequestDto;
 import com.noom.interview.fullstack.sleep.dto.UserResponseDto;
+import com.noom.interview.fullstack.sleep.exception.UserAlreadyExistsException;
 import com.noom.interview.fullstack.sleep.model.User;
 import com.noom.interview.fullstack.sleep.repository.UserRepository;
 import com.noom.interview.fullstack.sleep.service.UserService;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -34,6 +36,10 @@ public class UserServiceImpl implements UserService {
         user.setLastName(dto.getLastName());
         user.setEmail(dto.getEmail());
 
-        return UserResponseDto.from(userRepository.save(user));
+        try {
+            return UserResponseDto.from(userRepository.save(user));
+        } catch (DuplicateKeyException ex) {
+            throw new UserAlreadyExistsException();
+        }
     }
 }

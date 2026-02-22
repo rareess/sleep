@@ -10,7 +10,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.List;
 
+import com.noom.interview.fullstack.sleep.exception.UserAlreadyExistsException;
+
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
 class UserServiceImplTest {
@@ -48,6 +51,14 @@ class UserServiceImplTest {
         assertThat(users).hasSize(2);
         assertThat(users).extracting(UserResponseDto::getUsername)
                 .containsExactlyInAnyOrder("alice", "bob");
+    }
+
+    @Test
+    void createShouldThrowUserAlreadyExistsException() {
+        userService.create(buildEntity("alice", "alice@example.com"));
+
+        assertThatThrownBy(() -> userService.create(buildEntity("alice", "other@example.com")))
+                .isInstanceOf(UserAlreadyExistsException.class);
     }
 
     private CreateUserRequestDto buildEntity(String username, String email) {

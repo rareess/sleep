@@ -15,7 +15,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -80,15 +82,22 @@ public class SleepLogServiceImpl implements SleepLogService {
         int averageMinutesInBed = (int) Math.round(
                 logs.stream().mapToInt(SleepLog::getMinutesInBed).average().orElse(0));
 
-        LocalTime averageBedTime = SleepUtil.averageBedTime(
-                logs.stream().map(SleepLog::getBedTime).collect(Collectors.toList()));
+        List<LocalTime> bedTimes = new ArrayList<>(logs.size());
+        List<LocalTime> wakeTimes = new ArrayList<>(logs.size());
+        for (SleepLog log : logs) {
+            bedTimes.add(log.getBedTime());
+            wakeTimes.add(log.getWakeTime());
+        }
 
-        LocalTime averageWakeTime = SleepUtil.averageWakeTime(
-                logs.stream().map(SleepLog::getWakeTime).collect(Collectors.toList()));
+        LocalTime averageBedTime = SleepUtil.averageBedTime(bedTimes);
+        LocalTime averageWakeTime = SleepUtil.averageWakeTime(wakeTimes);
 
-        int badCount = (int) logs.stream().filter(l -> l.getSleepStatus() == SleepStatus.BAD).count();
-        int okCount = (int) logs.stream().filter(l -> l.getSleepStatus() == SleepStatus.OK).count();
-        int goodCount = (int) logs.stream().filter(l -> l.getSleepStatus() == SleepStatus.GOOD).count();
+        Map<SleepStatus, Long> statusCounts = logs.stream()
+                .collect(Collectors.groupingBy(SleepLog::getSleepStatus, Collectors.counting()));
+
+        int badCount  = statusCounts.getOrDefault(SleepStatus.BAD,  0L).intValue();
+        int okCount   = statusCounts.getOrDefault(SleepStatus.OK,   0L).intValue();
+        int goodCount = statusCounts.getOrDefault(SleepStatus.GOOD, 0L).intValue();
 
         return new SleepLogAveragesResponseDto(startDate, endDate, averageMinutesInBed,
                 averageBedTime, averageWakeTime, badCount, okCount, goodCount);

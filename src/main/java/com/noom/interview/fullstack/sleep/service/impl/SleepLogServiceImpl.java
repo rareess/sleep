@@ -11,6 +11,8 @@ import com.noom.interview.fullstack.sleep.service.SleepLogService;
 import com.noom.interview.fullstack.sleep.util.SleepUtil;
 import org.springframework.stereotype.Service;
 
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -20,10 +22,12 @@ public class SleepLogServiceImpl implements SleepLogService {
 
     private final SleepLogRepository sleepLogRepository;
     private final UserRepository userRepository;
+    private final Clock clock;
 
-    public SleepLogServiceImpl(SleepLogRepository sleepLogRepository, UserRepository userRepository) {
+    public SleepLogServiceImpl(SleepLogRepository sleepLogRepository, UserRepository userRepository, Clock clock) {
         this.sleepLogRepository = sleepLogRepository;
         this.userRepository = userRepository;
+        this.clock = clock;
     }
 
     @Override
@@ -50,7 +54,10 @@ public class SleepLogServiceImpl implements SleepLogService {
             throw new UserNotFoundException(userId);
         }
 
-        return sleepLogRepository.findLastNightsByUserId(userId, nights).stream()
+        LocalDate endDate = LocalDate.now(clock).minusDays(1);
+        LocalDate startDate = LocalDate.now(clock).minusDays(nights);
+
+        return sleepLogRepository.findByUserIdAndSleepDateBetween(userId, startDate, endDate).stream()
                 .map(SleepLogResponseDto::from)
                 .collect(Collectors.toList());
     }

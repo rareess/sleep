@@ -37,16 +37,20 @@ public class UserRepositoryImpl implements UserRepository {
 
     @Override
     public User save(User user) {
-        String sql = "INSERT INTO users (username, first_name, last_name, email) " +
-                     "VALUES (:username, :firstName, :lastName, :email) RETURNING id, username, first_name, last_name, email";
+        user.setId(UUID.randomUUID());
+
+        String sql = "INSERT INTO users (id, username, first_name, last_name, email) " +
+                     "VALUES (:id, :username, :firstName, :lastName, :email)";
 
         MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("id", user.getId())
                 .addValue("username", user.getUsername())
                 .addValue("firstName", user.getFirstName())
                 .addValue("lastName", user.getLastName())
                 .addValue("email", user.getEmail());
 
-        return jdbcTemplate.queryForObject(sql, params, userRowMapper);
+        jdbcTemplate.update(sql, params);
+        return user;
     }
 
     @Override

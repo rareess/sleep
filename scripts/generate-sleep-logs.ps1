@@ -1,3 +1,7 @@
+param(
+    [int]$N = 7
+)
+
 $BASE_URL = "http://localhost:8080"
 
 $userBody = @{
@@ -14,37 +18,28 @@ $userResponse | ConvertTo-Json
 $userId = $userResponse.id
 Write-Host "User ID: $userId"
 
-$log1 = @{
-    sleepDate   = (Get-Date).AddDays(-3).ToString("yyyy-MM-dd")
-    bedTime     = "01:00:00"
-    wakeTime    = "05:30:00"
-    sleepStatus = "BAD"
-} | ConvertTo-Json
+$statuses = @("BAD", "OK", "GOOD")
 
-Invoke-RestMethod -Uri "$BASE_URL/api/users/$userId/sleep-logs" -Method POST `
-    -ContentType "application/json" -Body $log1 | ConvertTo-Json
+for ($i = $N; $i -ge 1; $i--) {
+    $sleepDate = (Get-Date).AddDays(-$i).ToString("yyyy-MM-dd")
+    $status    = $statuses[($i - 1) % 3]
 
-$log2 = @{
-    sleepDate   = (Get-Date).AddDays(-2).ToString("yyyy-MM-dd")
-    bedTime     = "23:30:00"
-    wakeTime    = "07:00:00"
-    sleepStatus = "OK"
-} | ConvertTo-Json
+    $bedHour  = Get-Random -Minimum 21 -Maximum 24
+    $bedMin   = @(0, 15, 30, 45) | Get-Random
+    $wakeHour = Get-Random -Minimum 5 -Maximum 9
+    $wakeMin  = @(0, 15, 30, 45) | Get-Random
 
-Invoke-RestMethod -Uri "$BASE_URL/api/users/$userId/sleep-logs" -Method POST `
-    -ContentType "application/json" -Body $log2 | ConvertTo-Json
+    $logBody = @{
+        sleepDate   = $sleepDate
+        bedTime     = "{0:D2}:{1:D2}:00" -f $bedHour, $bedMin
+        wakeTime    = "{0:D2}:{1:D2}:00" -f $wakeHour, $wakeMin
+        sleepStatus = $status
+    } | ConvertTo-Json
 
-$log3 = @{
-    sleepDate   = (Get-Date).AddDays(-1).ToString("yyyy-MM-dd")
-    bedTime     = "22:00:00"
-    wakeTime    = "07:30:00"
-    sleepStatus = "GOOD"
-} | ConvertTo-Json
-
-Invoke-RestMethod -Uri "$BASE_URL/api/users/$userId/sleep-logs" -Method POST `
-    -ContentType "application/json" -Body $log3 | ConvertTo-Json
+    Write-Host "Posting log for $sleepDate ($status)..."
+    Invoke-RestMethod -Uri "$BASE_URL/api/users/$userId/sleep-logs" -Method POST `
+        -ContentType "application/json" -Body $logBody | ConvertTo-Json
+}
 
 Write-Host ""
-Write-Host " Fetching last 2 nights for user $userId..."
-Invoke-RestMethod -Uri "$BASE_URL/api/users/$userId/sleep-logs?nights=2" | ConvertTo-Json
-
+Write-Host "Done. User ID: $userId"

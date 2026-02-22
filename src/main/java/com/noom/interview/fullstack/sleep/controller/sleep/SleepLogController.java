@@ -4,6 +4,8 @@ import com.noom.interview.fullstack.sleep.dto.CreateSleepLogRequestDto;
 import com.noom.interview.fullstack.sleep.dto.SleepLogAveragesResponseDto;
 import com.noom.interview.fullstack.sleep.dto.SleepLogResponseDto;
 import com.noom.interview.fullstack.sleep.service.SleepLogService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -17,6 +19,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+@Tag(name = "Sleep Logs")
 @Validated
 @RestController
 @RequestMapping("/api/users/{userId}/sleep-logs")
@@ -30,12 +33,14 @@ public class SleepLogController {
         this.clock = clock;
     }
 
+    @Operation(summary = "Create a sleep log for a user")
     @PostMapping
     public ResponseEntity<SleepLogResponseDto> create(@PathVariable UUID userId,
                                                       @Valid @RequestBody CreateSleepLogRequestDto dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(sleepLogService.create(userId, dto));
     }
 
+    @Operation(summary = "Get last N nights of sleep logs for a user")
     @GetMapping
     public ResponseEntity<List<SleepLogResponseDto>> getLastNights(
             @PathVariable UUID userId,
@@ -45,6 +50,7 @@ public class SleepLogController {
         return ResponseEntity.ok(sleepLogService.getLastNights(userId, startDate, endDate));
     }
 
+    @Operation(summary = "Get sleep averages for a user over the last N days")
     @GetMapping("/averages")
     public ResponseEntity<SleepLogAveragesResponseDto> getAverages(
             @PathVariable UUID userId,

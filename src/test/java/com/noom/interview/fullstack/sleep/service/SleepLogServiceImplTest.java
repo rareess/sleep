@@ -1,5 +1,6 @@
 package com.noom.interview.fullstack.sleep.service;
 
+import com.noom.interview.fullstack.sleep.dto.SleepLogAveragesResponseDto;
 import com.noom.interview.fullstack.sleep.dto.SleepLogResponseDto;
 import com.noom.interview.fullstack.sleep.exception.DuplicateSleepLogException;
 import com.noom.interview.fullstack.sleep.exception.UserNotFoundException;
@@ -75,10 +76,45 @@ class SleepLogServiceImplTest {
         sleepLogService.create(userId, TestSleepLogFactory.buildCreateRequest(LocalDate.now().minusDays(1), LocalTime.of(22, 0), LocalTime.of(6, 0)));
         sleepLogService.create(userId, TestSleepLogFactory.buildCreateRequest(LocalDate.now().minusDays(2), LocalTime.of(23, 0), LocalTime.of(7, 0)));
 
-        List<SleepLogResponseDto> result = sleepLogService.getLastNights(userId, 7);
+        List<SleepLogResponseDto> result = sleepLogService.getLastNights(userId, LocalDate.now().minusDays(7), LocalDate.now().minusDays(1));
 
         assertThat(result).hasSize(2);
         assertThat(result).extracting(SleepLogResponseDto::getSleepDate)
                 .containsExactly(LocalDate.now().minusDays(1), LocalDate.now().minusDays(2));
+    }
+
+    @Test
+    void getAveragesShouldReturnZeroesWhenNoLogsInRange() {
+        SleepLogAveragesResponseDto result = sleepLogService.getAverages(userId, LocalDate.now().minusDays(7), LocalDate.now().minusDays(1));
+
+        assertThat(result.getAverageMinutesInBed()).isEqualTo(0);
+        assertThat(result.getAverageBedTime()).isNull();
+        assertThat(result.getAverageWakeTime()).isNull();
+        assertThat(result.getBadCount()).isEqualTo(0);
+        assertThat(result.getOkCount()).isEqualTo(0);
+        assertThat(result.getGoodCount()).isEqualTo(0);
+    }
+
+    @Test
+    void getAveragesShouldReturnComputedAverages() {
+        sleepLogService.create(userId, TestSleepLogFactory.buildCreateRequest(LocalDate.now().minusDays(1), LocalTime.of(22, 0), LocalTime.of(6, 0), SleepStatus.OK));
+        sleepLogService.create(userId, TestSleepLogFactory.buildCreateRequest(LocalDate.now().minusDays(2), LocalTime.of(23, 0), LocalTime.of(7, 0), SleepStatus.GOOD));
+
+        SleepLogAveragesResponseDto result = sleepLogService.getAverages(userId, LocalDate.now().minusDays(7), LocalDate.now().minusDays(1));
+
+        assertThat(result.getAverageMinutesInBed()).isEqualTo(480);
+        assertThat(result.getAverageBedTime()).isEqualTo(LocalTime.of(22, 30));
+        assertThat(result.getAverageWakeTime()).isEqualTo(LocalTime.of(6, 30));
+        assertThat(result.getOkCount()).isEqualTo(1);
+        assertThat(result.getGoodCount()).isEqualTo(1);
+        assertThat(result.getBadCount()).isEqualTo(0);
+    }
+
+    @Test
+    void getAveragesShouldThrowUserNotFoundWhenUserDoesNotExist() {
+        UUID nonExistentId = UUID.randomUUID();
+
+        assertThatThrownBy(() -> sleepLogService.getAverages(nonExistentId, LocalDate.now().minusDays(7), LocalDate.now().minusDays(1)))
+                .isInstanceOf(UserNotFoundException.class);
     }
 }

@@ -1,18 +1,20 @@
 package com.noom.interview.fullstack.sleep.service.impl;
 
 import com.noom.interview.fullstack.sleep.dto.CreateSleepLogRequestDto;
+import com.noom.interview.fullstack.sleep.dto.SleepLogAveragesResponseDto;
 import com.noom.interview.fullstack.sleep.dto.SleepLogResponseDto;
 import com.noom.interview.fullstack.sleep.exception.DuplicateSleepLogException;
 import com.noom.interview.fullstack.sleep.exception.UserNotFoundException;
 import com.noom.interview.fullstack.sleep.model.SleepLog;
+import com.noom.interview.fullstack.sleep.model.SleepStatus;
 import com.noom.interview.fullstack.sleep.repository.SleepLogRepository;
 import com.noom.interview.fullstack.sleep.repository.UserRepository;
 import com.noom.interview.fullstack.sleep.service.SleepLogService;
 import com.noom.interview.fullstack.sleep.util.SleepUtil;
 import org.springframework.stereotype.Service;
 
-import java.time.Clock;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -22,12 +24,10 @@ public class SleepLogServiceImpl implements SleepLogService {
 
     private final SleepLogRepository sleepLogRepository;
     private final UserRepository userRepository;
-    private final Clock clock;
 
-    public SleepLogServiceImpl(SleepLogRepository sleepLogRepository, UserRepository userRepository, Clock clock) {
+    public SleepLogServiceImpl(SleepLogRepository sleepLogRepository, UserRepository userRepository) {
         this.sleepLogRepository = sleepLogRepository;
         this.userRepository = userRepository;
-        this.clock = clock;
     }
 
     @Override
@@ -49,16 +49,48 @@ public class SleepLogServiceImpl implements SleepLogService {
     }
 
     @Override
-    public List<SleepLogResponseDto> getLastNights(UUID userId, int nights) {
+    public List<SleepLogResponseDto> getLastNights(UUID userId, LocalDate startDate, LocalDate endDate) {
         if (!userRepository.existsById(userId)) {
             throw new UserNotFoundException(userId);
         }
 
-        LocalDate endDate = LocalDate.now(clock).minusDays(1);
-        LocalDate startDate = LocalDate.now(clock).minusDays(nights);
-
         return sleepLogRepository.findByUserIdAndSleepDateBetween(userId, startDate, endDate).stream()
                 .map(SleepLogResponseDto::from)
                 .collect(Collectors.toList());
+    }
+
+    /*
+     * corner cases for getAverages:
+     * - bedtime crossing midnight (e.g. 23:00 -> 01:00)
+     * - average bedtime lands exactly on midnight (00:00)
+     *    → e.g. bed times 23:00 and 01:00 -> average = 00:00
+     * */
+    @Override
+    public SleepLogAveragesResponseDto getAverages(UUID userId, LocalDate startDate, LocalDate endDate) {
+        if (!userRepository.existsById(userId)) {
+            throw new UserNotFoundException(userId);
+        }
+
+        List<SleepLog> logs = sleepLogRepository.findByUserIdAndSleepDateBetween(userId, startDate, endDate);
+
+        if (logs.isEmpty()) {
+            return new SleepLogAveragesResponseDto(startDate, endDate, 0, null, null, 0, 0, 0);
+        }
+
+        int averageMinutesInBed = (int) Math.round(
+                logs.stream().mapToInt(SleepLog::getMinutesInBed).average().orElse(0));
+
+        LocalTime averageBedTime = SleepUtil.averageBedTime(
+                logs.stream().map(SleepLog::getBedTime).collect(Collectors.toList()));
+
+        LocalTime averageWakeTime = SleepUtil.averageWakeTime(
+                logs.stream().map(SleepLog::getWakeTime).collect(Collectors.toList()));
+
+        int badCount = (int) logs.stream().filter(l -> l.getSleepStatus() == SleepStatus.BAD).count();
+        int okCount = (int) logs.stream().filter(l -> l.getSleepStatus() == SleepStatus.OK).count();
+        int goodCount = (int) logs.stream().filter(l -> l.getSleepStatus() == SleepStatus.GOOD).count();
+
+        return new SleepLogAveragesResponseDto(startDate, endDate, averageMinutesInBed,
+                averageBedTime, averageWakeTime, badCount, okCount, goodCount);
     }
 }

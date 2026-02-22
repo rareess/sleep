@@ -2,6 +2,7 @@ package com.noom.interview.fullstack.sleep.util;
 
 import java.time.Duration;
 import java.time.LocalTime;
+import java.util.List;
 
 public final class SleepUtil {
 
@@ -18,5 +19,27 @@ public final class SleepUtil {
         long minutes = Duration.between(bedTime, wakeTime).toMinutes();
         if (minutes < 0) minutes += 24 * 60;
         return (int) minutes;
+    }
+
+    public static LocalTime averageBedTime(List<LocalTime> bedTimes) {
+        if (bedTimes.isEmpty()) return null;
+        long totalMinutes = bedTimes.stream()
+                .mapToLong(t -> {
+                    long minutes = t.getHour() * 60L + t.getMinute();
+                    if (t.getHour() < 12) minutes += 24 * 60;
+                    return minutes;
+                })
+                .sum();
+        long avgMinutes = (totalMinutes / bedTimes.size()) % (24 * 60);
+        return LocalTime.of((int) (avgMinutes / 60), (int) (avgMinutes % 60));
+    }
+
+    public static LocalTime averageWakeTime(List<LocalTime> wakeTimes) {
+        if (wakeTimes.isEmpty()) return null;
+        long totalMinutes = wakeTimes.stream()
+                .mapToLong(t -> t.getHour() * 60L + t.getMinute())
+                .sum();
+        long avgMinutes = totalMinutes / wakeTimes.size();
+        return LocalTime.of((int) (avgMinutes / 60), (int) (avgMinutes % 60));
     }
 }

@@ -18,11 +18,15 @@ public final class TestSleepLogFactory {
     }
 
     public static CreateSleepLogRequestDto buildCreateRequest(LocalDate date, LocalTime bedTime, LocalTime wakeTime) {
+        return buildCreateRequest(date, bedTime, wakeTime, SleepStatus.OK);
+    }
+
+    public static CreateSleepLogRequestDto buildCreateRequest(LocalDate date, LocalTime bedTime, LocalTime wakeTime, SleepStatus status) {
         CreateSleepLogRequestDto dto = new CreateSleepLogRequestDto();
         dto.setSleepDate(date);
         dto.setBedTime(bedTime);
         dto.setWakeTime(wakeTime);
-        dto.setSleepStatus(SleepStatus.OK);
+        dto.setSleepStatus(status);
         return dto;
     }
 }

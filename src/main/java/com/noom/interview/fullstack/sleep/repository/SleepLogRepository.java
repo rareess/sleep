@@ -11,7 +11,7 @@ public interface SleepLogRepository {
 
     SleepLog save(SleepLog sleepLog);
 
-    List<SleepLog> findLastNightsByUserId(UUID userId, int nights);
+    List<SleepLog> findByUserIdAndSleepDateBetween(UUID userId, LocalDate startDate, LocalDate endDate);
 
     Optional<SleepLog> findByUserIdAndSleepDate(UUID userId, LocalDate sleepDate);
 }

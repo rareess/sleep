@@ -27,10 +27,13 @@ public class SleepLogRepositoryImpl implements SleepLogRepository {
 
     @Override
     public SleepLog save(SleepLog sleepLog) {
-        String sql = "INSERT INTO sleep_logs (user_id, sleep_date, bed_time, wake_time, minutes_in_bed, sleep_status) " +
-                     "VALUES (:userId, :sleepDate, :bedTime, :wakeTime, :minutesInBed, :sleepStatus) RETURNING id";
+        sleepLog.setId(UUID.randomUUID());
+
+        String sql = "INSERT INTO sleep_logs (id, user_id, sleep_date, bed_time, wake_time, minutes_in_bed, sleep_status) " +
+                     "VALUES (:id, :userId, :sleepDate, :bedTime, :wakeTime, :minutesInBed, :sleepStatus)";
 
         MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("id", sleepLog.getId())
                 .addValue("userId", sleepLog.getUserId())
                 .addValue("sleepDate", sleepLog.getSleepDate())
                 .addValue("bedTime", sleepLog.getBedTime())
@@ -38,25 +41,25 @@ public class SleepLogRepositoryImpl implements SleepLogRepository {
                 .addValue("minutesInBed", sleepLog.getMinutesInBed())
                 .addValue("sleepStatus", sleepLog.getSleepStatus().name());
 
-        UUID generatedId = jdbcTemplate.queryForObject(sql, params, UUID.class);
-        sleepLog.setId(generatedId);
-        log.info("SleepLog saved with generated id {}", sleepLog.getId());
+        jdbcTemplate.update(sql, params);
+        log.info("SleepLog saved with id {}", sleepLog.getId());
         return sleepLog;
     }
 
     @Override
-    public List<SleepLog> findLastNightsByUserId(UUID userId, int nights) {
+    public List<SleepLog> findByUserIdAndSleepDateBetween(UUID userId, LocalDate startDate, LocalDate endDate) {
         String sql = "SELECT id, user_id, sleep_date, bed_time, wake_time, minutes_in_bed, sleep_status FROM sleep_logs " +
                      "WHERE user_id = :userId " +
-                     "AND sleep_date BETWEEN CURRENT_DATE - :nights AND CURRENT_DATE - 1 " +
+                     "AND sleep_date BETWEEN :startDate AND :endDate " +
                      "ORDER BY sleep_date DESC";
 
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("userId", userId)
-                .addValue("nights", nights);
+                .addValue("startDate", startDate)
+                .addValue("endDate", endDate);
 
         List<SleepLog> sleepLogs = jdbcTemplate.query(sql, params, sleepLogRowMapper);
-        log.info("Found {} sleep logs for user {} last nights : {}", sleepLogs.size(), userId, nights);
+        log.info("Found {} sleep logs for user {} between {} and {}", sleepLogs.size(), userId, startDate, endDate);
         return sleepLogs;
     }
 
